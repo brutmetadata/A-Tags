@@ -85,18 +85,20 @@ function readGrid(g,W,H,q){
   const v=inner.map(x=>Math.min(1,Math.max(0,(x-black)/(white-black))));
   return{v,cells,black,white,H:Hm}}
 function match(v){
-  const best=new Float32Array(NAMES.length).fill(1e9),bestK=new Int8Array(NAMES.length);
-  for(const c of CODES){let d=0;const b=c.bits;for(let i=0;i<64;i++){const e=v[i]-b[i];d+=e<0?-e:e}if(d<best[c.id]){best[c.id]=d;bestK[c.id]=c.k}}
+  const best=new Float32Array(NAMES.length).fill(1e9),bestK=new Int8Array(NAMES.length),dk=new Float32Array(NAMES.length*4);
+  for(const c of CODES){let d=0;const b=c.bits;for(let i=0;i<64;i++){const e=v[i]-b[i];d+=e<0?-e:e}dk[c.id*4+c.k]=d;if(d<best[c.id]){best[c.id]=d;bestK[c.id]=c.k}}
   let i1=0;for(let i=1;i<best.length;i++)if(best[i]<best[i1])i1=i;
   let i2=i1===0?1:0;for(let i=0;i<best.length;i++)if(i!==i1&&best[i]<best[i2])i2=i;
   let Z=0;for(let i=0;i<best.length;i++)Z+=Math.exp(-2*(best[i]-best[i1]));
-  return{id:i1,k:bestK[i1],dist:best[i1],second:i2,dist2:best[i2],prob:1/Z,prob2:Math.exp(-2*(best[i2]-best[i1]))/Z}}
+  // rotations that fit (almost) equally well: symmetric tags like 029 and 101 cannot tell which way round they are
+  const ks=[0,1,2,3].filter(k=>dk[i1*4+k]-best[i1]<.6).sort((a,b)=>dk[i1*4+a]-dk[i1*4+b]);
+  return{id:i1,k:bestK[i1],ks,dist:best[i1],second:i2,dist2:best[i2],prob:1/Z,prob2:Math.exp(-2*(best[i2]-best[i1]))/Z}}
 function decode(g,W,H,q){
   const r=readGrid(g,W,H,q);if(!r)return null;const m=match(r.v);
   if(m.dist>5)return null;                              // too far from every tag
   // reorder corners so corner 0 is the tag's own top-left (undo the rotation k)
-  const quad=[0,1,2,3].map(i=>q[(i+m.k)%4]);
-  return{...m,quad,unsure:(m.dist2-m.dist)<.6,v:r.v}}
+  const quad=[0,1,2,3].map(i=>q[(i+m.k)%4]),quads=m.ks.map(k=>[0,1,2,3].map(i=>q[(i+k)%4]));
+  return{...m,quad,quads,unsure:(m.dist2-m.dist)<.6,v:r.v}}
 
 return{init,candidates,refine,decode,solveH,applyH,UNIT,names:()=>NAMES}})();
 if(typeof module!=="undefined")module.exports=ATAG;
