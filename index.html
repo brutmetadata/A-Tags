@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>A-Tags: 151 follies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a calm lab instrument, plain and exact
+   IDEA: a surveyor's field sheet: what the camera sees, beside what the machine reads
+   PICTURE: the live camera view with every recognised tag growing its folly
+   COLOUR and TYPE: white, black, folly vermilion #e4302b; Archivo
+   LAYOUT: camera view large on the left, the reading on the right; full-screen AR on phones */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#111111);--ink:light-dark(#111111,#f2f2f2);--mute:light-dark(#666666,#9a9a9a);--line:light-dark(#dcdcdc,#2c2c2c);--red:#e4302b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px);max-width:1240px;margin:0 auto}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0 0 6px;font-stretch:112%;font-weight:800;text-wrap:balance}
+.sub{color:var(--mute);margin:0 0 20px;max-width:68ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;background:#000;border-top:6px solid var(--red)}
+#view{display:block;width:100%;height:auto}
+#gl,#hud{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{font:inherit;font-size:15px;min-height:44px;padding:0 16px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.seg{display:inline-flex}.seg button+button{border-left:0}
+.msg{font-size:14px;color:var(--mute);margin:10px 0 0;min-height:1.5em}
+.status{font-size:22px;font-weight:800;font-stretch:112%;margin:0 0 4px}
+.status.on{color:var(--red)}
+.stat{font-variant-numeric:tabular-nums;color:var(--mute);font-size:14px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.pair figure{margin:0}
+.pair canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;display:block;border:1px solid var(--line);background:#777}
+figcaption{font-size:13px;color:var(--mute);margin-top:4px}
+.list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;padding:0;list-style:none;min-height:34px}
+.list li{font-size:14px;padding:4px 10px;background:var(--red);color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+.list li.unsure{background:transparent;color:var(--red);border:1.5px dashed var(--red)}
+ol{padding-left:1.2em;margin:18px 0 0}
+ol li{margin-bottom:6px}
+.arbar{display:none}
+body.ar{overflow:hidden;background:#000}
+body.ar .stage{position:fixed;inset:0;z-index:10;border:0;background:#000}
+body.ar #view,body.ar #gl,body.ar #hud{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+body.ar .arbar{display:flex;position:absolute;left:0;right:0;bottom:0;gap:10px;align-items:center;padding:14px max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.arbar span{flex:1;color:#fff;font-weight:700;font-size:16px}
+.arbar span.on{color:#ff6a5f}
+.arbar button{color:#fff;border-color:#fff;background:rgba(0,0,0,.35);min-width:72px}
+.arbar #bShot{background:#e4302b;border-color:#e4302b}
+.arbar #bSize2{min-width:0}
+</style>
+</head>
+<body>
+<div class="band">
+<h1>A-Tags: 151 tags, 151 follies</h1>
+<p class="sub">Lay printed tags on a table and tap "Use camera". Every tag the machine can read grows its own folly. On a phone the view opens full screen with the rear camera. Until then, a simulated camera runs the same reader on six tags.</p>
+<div class="grid">
+  <div>
+    <div class="stage"><canvas id="view" width="640" height="480"></canvas><canvas id="gl"></canvas><canvas id="hud"></canvas>
+      <div class="arbar"><span id="arStatus">Point at a tag</span><button id="bSize2">Size</button><button id="bShot">Photo</button><button id="bDone">Done</button></div></div>
+    <div class="bar">
+      <button id="bCam" aria-pressed="false">Use camera</button>
+      <button id="bSim" aria-pressed="true">Simulated camera</button>
+      <span class="seg" role="group" aria-label="Folly size"><button id="bSame" aria-pressed="true">Same size</button><button id="bReal" aria-pressed="false">True to scale</button></span>
+      <button id="bThr" aria-pressed="false">Show what the threshold sees</button>
+    </div>
+    <p class="msg" id="msg"></p>
+  </div>
+  <div class="panel">
+    <p class="status" id="status">Searching…</p>
+    <div class="stat" id="meta">Starting…</div>
+    <ul class="list" id="list"></ul>
+    <div class="pair">
+      <figure><canvas id="seen" width="10" height="10"></canvas><figcaption id="seenCap">What the camera gives, read as a 10 × 10 grid</figcaption></figure>
+      <figure><canvas id="ref" width="10" height="10"></canvas><figcaption id="refCap">Closest stored tag</figcaption></figure>
+    </div>
+    <ol>
+      <li>Turn the frame into black and white, comparing each pixel with its neighbourhood.</li>
+      <li>Find dark squares and their four corners. Thin grey outlines show every candidate.</li>
+      <li>Straighten each square and read its 10 × 10 grid of cells.</li>
+      <li>Compare the grid with all 151 tags in four rotations. When two tags are almost equally close, the label says so with a question mark, and the folly appears as a ghost.</li>
+      <li>From the four corners, estimate the camera pose and grow the folly out of its card.</li>
+    </ol>
+  </div>
+</div>
+</div>
+<script src="js/three.min.js"></script>
+<script src="js/GLTFLoader.js"></script>
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script>
+{
+ATAG.init(ATAG_DATA);
+const NAMES=ATAG_DATA.names,GRIDS=ATAG_DATA.grids,SIZES=ATAG_DATA.sizes,pad=n=>String(n).padStart(3,'0');
+const $=id=>document.getElementById(id);
+const view=$('view'),vx=view.getContext('2d'),hud=$('hud'),ux=hud.getContext('2d');
+const hi=document.createElement('canvas'),hx=hi.getContext('2d',{willReadFrequently:true});
+const thr=document.createElement('canvas'),tx=thr.getContext('2d');
+const sim=document.createElement('canvas');sim.width=960;sim.height=720;const sx=sim.getContext('2d');
+const video=document.createElement('video');video.playsInline=true;video.muted=true;video.setAttribute('playsinline','');video.setAttribute('muted','');video.setAttribute('autoplay','');
+let mode='sim',showThr=false,sizeMode='same',frames=0,fps=0,lastT=performance.now(),procMs=0,lastVT=-1,gH=null,gL=null;
+const MAX_TRACK=14;
+
+// ---------- One Euro filter ----------
+class OneEuro{constructor(mc=2,beta=.05,dc=1){this.mc=mc;this.beta=beta;this.dc=dc;this.x=null;this.dx=0;this.t=0}
+  a(c,dt){const r=2*Math.PI*c*dt;return r/(r+1)}
+  f(x,t){if(this.x===null){this.x=x;this.t=t;return x}const dt=Math.max(1e-3,(t-this.t)/1000);this.t=t;const dx=(x-this.x)/dt;this.dx+=this.a(this.dc,dt)*(dx-this.dx);
+    const c=this.mc+this.beta*Math.abs(this.dx);this.x+=this.a(c,dt)*(x-this.x);return this.x}}
+
+// ---------- simulated camera: six tags on a table ----------
+const SIM_IDS=[8,24,9,13,93,150];const SIM_POS=[[-1.25,-.7],[0,-.75],[1.25,-.7],[-1.25,.75],[0,.8],[1.25,.75]];const SIM_ROT=[.2,-.4,.9,0,2.6,-1.2];
+function renderSim(t){
+  const W=sim.width,H=sim.height,f=.9*W,rot=.25*Math.sin(t*.00023),tilt=.9+.15*Math.sin(t*.00041),dist=4.4+.5*Math.sin(t*.0003),ox=.25*Math.sin(t*.00019),oy=.15*Math.cos(t*.00027);
+  const g=sx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#8d8f8a');g.addColorStop(1,'#a9aaa5');sx.fillStyle=g;sx.fillRect(0,0,W,H);
+  const pr=(X,Y)=>{const c=Math.cos(rot),s=Math.sin(rot);const x=X*c-Y*s,y=X*s+Y*c,Y2=y*Math.cos(tilt),Z2=-y*Math.sin(tilt);return[f*(x+ox)/(Z2+dist)+W/2,f*(Y2+oy)/(Z2+dist)+H/2]};
+  const poly=(pts,col)=>{sx.fillStyle=col;sx.beginPath();pts.forEach(([x,y],i)=>i?sx.lineTo(x,y):sx.moveTo(x,y));sx.closePath();sx.fill()};
+  SIM_IDS.forEach((id,n)=>{const[cx,cy]=SIM_POS[n],a=SIM_ROT[n],S=.72,ca=Math.cos(a),sa=Math.sin(a);
+    const P=(u,v)=>{const x=(u-.5)*S,y=(v-.5)*S;return pr(cx+x*ca-y*sa,cy+x*sa+y*ca)};
+    poly([P(-.2,-.2),P(1.2,-.2),P(1.2,1.2),P(-.2,1.2)],'#f4f3ef');
+    const gr=GRIDS[id],e=.012;
+    for(let r=0;r<10;r++)for(let c=0;c<10;c++)if(gr[r*10+c]==='0'){const u0=c/10-e,u1=(c+1)/10+e,v0=r/10-e,v1=(r+1)/10+e;poly([P(u0,v0),P(u1,v0),P(u1,v1),P(u0,v1)],'#161616')}})}
+
+// ---------- 3D ----------
+const glc=$('gl');const R=new THREE.WebGLRenderer({canvas:glc,alpha:true,antialias:true});
+R.setPixelRatio(Math.min(1.25,window.devicePixelRatio||1));R.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene(),cam3=new THREE.Camera();cam3.matrixAutoUpdate=false;
+scene.add(new THREE.HemisphereLight(0xffffff,0x5a5a5a,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.85);sun.position.set(-.6,1,.8);scene.add(sun);
+const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,8,64,64,64);g.addColorStop(0,'rgba(0,0,0,.45)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)})();
+const loader=new THREE.GLTFLoader(),cache=new Map();
+function getModel(id){if(!cache.has(id)){const e={state:'loading',obj:null};cache.set(id,e);
+  loader.load(`folies/folie_tag_${pad(id+1)}.glb`,g=>{e.obj=g.scene;e.state='ok'},undefined,()=>{e.state='err'})}return cache.get(id)}
+const footprint=i=>Math.max(SIZES[i][0],SIZES[i][1]);
+const MEDIAN_FOOT=[...SIZES.keys()].map(footprint).sort((a,b)=>a-b)[75];
+function buildFolly(id){const e=getModel(id);if(e.state!=='ok')return null;
+  const obj=e.obj.clone(true);obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.userData.op=m.material.opacity}});
+  const bb=new THREE.Box3().setFromObject(obj),sz=new THREE.Vector3(),c=new THREE.Vector3();bb.getSize(sz);bb.getCenter(c);obj.position.set(-c.x,-bb.min.y,-c.z);
+  const w=new THREE.Group();w.add(obj);
+  const s=sizeMode==='same'?1.15/Math.max(sz.x,sz.z):1.15*(footprint(id)/MEDIAN_FOOT)/Math.max(sz.x,sz.z);w.scale.setScalar(s);
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.position.y=.002;
+  const fs=Math.max(sz.x,sz.z)*s*1.5;sh.scale.set(fs,fs,1);const holder=new THREE.Group();holder.add(sh);holder.add(w);return holder}
+function setGhost(tr,on){if(!tr.folly||tr.ghost===on)return;tr.ghost=on;tr.folly.traverse(m=>{if(m.isMesh&&m.material!==undefined&&!m.material.map){m.material.transparent=on||m.userData.op<1;m.material.opacity=on?.4:m.userData.op;m.material.depthWrite=!on}})}
+
+// ---------- trackers ----------
+let trackers=[];
+function newTracker(t){const tr={filt:Array.from({length:8},()=>new OneEuro()),votes:new Map(),track:null,lastHit:t,spawnT:t,anchor:new THREE.Group(),grow:new THREE.Group(),folly:null,modelId:-1,ghost:false,shown:-1};
+  tr.anchor.matrixAutoUpdate=false;tr.anchor.add(tr.grow);scene.add(tr.anchor);return tr}
+const center=q=>[q.reduce((s,p)=>s+p[0],0)/4,q.reduce((s,p)=>s+p[1],0)/4],sideOf=q=>(Math.hypot(q[1][0]-q[0][0],q[1][1]-q[0][1])+Math.hypot(q[2][0]-q[1][0],q[2][1]-q[1][1]))/2;
+function updateTrackers(dets,t){
+  for(const tr of trackers)tr.matched=false;
+  dets.sort((a,b)=>sideOf(b.quad)-sideOf(a.quad));
+  for(const d of dets){const c=center(d.quad),side=sideOf(d.quad);let best=null,bd=1e9;
+    for(const tr of trackers){if(tr.matched)continue;const dd=Math.hypot(c[0]-tr.c[0],c[1]-tr.c[1]);if(dd<.6*Math.max(side,tr.side)&&dd<bd){bd=dd;best=tr}}
+    if(!best){if(trackers.length>=MAX_TRACK)continue;best=newTracker(t);trackers.push(best)}
+    best.matched=true;best.c=c;best.side=side;best.det=d;
+    for(const[k,v]of best.votes)best.votes.set(k,v*.8);
+    best.votes.set(d.id,(best.votes.get(d.id)||0)+d.prob);if(d.unsure)best.votes.set(d.second,(best.votes.get(d.second)||0)+d.prob2);
+    const ranked=[...best.votes.entries()].sort((a,b)=>b[1]-a[1]);best.shown=ranked[0][0];best.alt=ranked[1]?ranked[1][0]:-1;
+    best.unsure=d.unsure||(ranked[1]&&ranked[1][1]>.6*ranked[0][1]);
+    // keep corner 0 on the shown tag's top-left: if the decode chose another id, its corner order may differ
+    let q=d.quad;if(d.id!==best.shown&&best.track){let bk=0,be=1e9;for(let k=0;k<4;k++){let e=0;for(let i=0;i<4;i++)e+=Math.hypot(q[(i+k)%4][0]-best.track[i][0],q[(i+k)%4][1]-best.track[i][1]);if(e<be){be=e;bk=k}}q=[0,1,2,3].map(i=>q[(i+bk)%4])}
+    const jump=best.track?q.reduce((s,p,i)=>s+Math.hypot(p[0]-best.track[i][0],p[1]-best.track[i][1]),0)/4:1e9;
+    if(!best.track||t-best.lastHit>400||jump>.35*side)best.filt.forEach(f=>f.x=null);
+    best.track=q.map((p,i)=>[best.filt[2*i].f(p[0],t),best.filt[2*i+1].f(p[1],t)]);best.lastHit=t}
+  trackers=trackers.filter(tr=>{if(t-tr.lastHit>450){scene.remove(tr.anchor);return false}return true})}
+
+function poseMatrix(track,WH,HH){
+  const Hm=ATAG.solveH(ATAG.UNIT,track);if(!Hm)return null;
+  const f=.9*Math.max(WH,HH),cx=WH/2,cy=HH/2,col=j=>[(Hm[0][j]-cx*Hm[2][j])/f,(Hm[1][j]-cy*Hm[2][j])/f,Hm[2][j]];
+  const m1=col(0),m2=col(1),m3=col(2),n=v=>Math.hypot(...v);let l=2/(n(m1)+n(m2));if(m3[2]*l<0)l=-l;
+  const r1=m1.map(v=>v*l),r2=m2.map(v=>v*l),tt=m3.map(v=>v*l),r3=[r1[1]*r2[2]-r1[2]*r2[1],r1[2]*r2[0]-r1[0]*r2[2],r1[0]*r2[1]-r1[1]*r2[0]];
+  const zc=w=>r1[2]*.5+r2[2]*.5+r3[2]*w+tt[2],up=zc(.5)<zc(-.5)?1:-1,r3s=r3.map(v=>v*up),sxn=-up;
+  const o=[0,1,2].map(i=>tt[i]+.5*r1[i]+.5*r2[i]),F=[1,-1,-1],M=new THREE.Matrix4();
+  M.set(F[0]*r1[0]*sxn,F[0]*r3s[0],F[0]*r2[0],F[0]*o[0], F[1]*r1[1]*sxn,F[1]*r3s[1],F[1]*r2[1],F[1]*o[1], F[2]*r1[2]*sxn,F[2]*r3s[2],F[2]*r2[2],F[2]*o[2], 0,0,0,1);return{M,f}}
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function render3D(WH,HH,t){
+  if(glc.width!==Math.round(WH*R.getPixelRatio())||glc.height!==Math.round(HH*R.getPixelRatio()))R.setSize(WH,HH,false);
+  const f=.9*Math.max(WH,HH),cx=WH/2,cy=HH/2,near=.05,far=500;
+  cam3.projectionMatrix.set(2*f/WH,0,1-2*cx/WH,0, 0,2*f/HH,2*cy/HH-1,0, 0,0,-(far+near)/(far-near),-2*far*near/(far-near), 0,0,-1,0);cam3.projectionMatrixInverse.copy(cam3.projectionMatrix).invert();
+  for(const tr of trackers){
+    const vis=t-tr.lastHit<250&&tr.track;tr.anchor.visible=!!vis;if(!vis)continue;
+    if(tr.shown!==tr.modelId){const b=buildFolly(tr.shown);
+      if(b){if(tr.folly)tr.grow.remove(tr.folly);tr.folly=b;tr.grow.add(b);tr.modelId=tr.shown;tr.ghost=false;tr.spawnT=t}
+      else if(cache.get(tr.shown)?.state==='err'){tr.modelId=tr.shown}}
+    setGhost(tr,!!tr.unsure);
+    const p=poseMatrix(tr.track,WH,HH);if(!p){tr.anchor.visible=false;continue}
+    tr.anchor.matrix.copy(p.M);tr.anchor.matrixWorldNeedsUpdate=true;
+    const k=reduce?1:Math.min(1,(t-tr.spawnT)/700),e=1-Math.pow(1-k,3);tr.grow.scale.set(e,e*(1+.12*Math.sin(k*Math.PI)),e);tr.grow.rotation.y=(1-e)*1.2}
+  R.render(scene,cam3)}
+
+// ---------- panel helpers ----------
+function drawCells(cv,vals){const c=cv.getContext('2d'),im=c.createImageData(10,10);for(let i=0;i<100;i++){const v=Math.max(0,Math.min(255,vals[i]));im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}c.putImageData(im,0,0)}
+function storedCells(id){const g=GRIDS[id];return[...g].map(ch=>ch==='1'?255:0)}
+const label=tr=>tr.unsure&&tr.alt>=0?`${pad(tr.shown+1)} ${NAMES[tr.shown]}? · ${pad(tr.alt+1)} ${NAMES[tr.alt]}?`:`#${pad(tr.shown+1)} ${NAMES[tr.shown]} · ${Math.round((tr.det?tr.det.prob:0)*100)}%`;
+
+// ---------- main loop ----------
+function grayInto(ctx,W,H,buf){const d=ctx.getImageData(0,0,W,H).data;if(!buf||buf.length!==W*H)buf=new Uint8Array(W*H);for(let i=0,j=0;i<W*H;i++,j+=4)buf[i]=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8;return buf}
+let listKey='';
+function loop(t){
+  requestAnimationFrame(loop);
+  let src,sw,sh,isNew=true;
+  if(mode==='cam'&&video.readyState>=2){src=video;sw=video.videoWidth;sh=video.videoHeight;isNew=video.currentTime!==lastVT;lastVT=video.currentTime}
+  else{renderSim(t);src=sim;sw=sim.width;sh=sim.height}
+  const sc=Math.min(1,960/Math.max(sw,sh)),WH=Math.round(sw*sc/2)*2,HH=Math.round(sh*sc/2)*2,W=WH/2,H=HH/2;
+  if(view.width!==WH||view.height!==HH){view.width=hud.width=hi.width=WH;view.height=hud.height=hi.height=HH}
+  if(thr.width!==W||thr.height!==H){thr.width=W;thr.height=H}
+  if(!isNew){render3D(WH,HH,t);return}
+  const t0=performance.now();
+  hx.drawImage(src,0,0,WH,HH);gH=grayInto(hx,WH,HH,gH);
+  if(!gL||gL.length!==W*H)gL=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const k=2*y*WH+2*x;gL[y*W+x]=(gH[k]+gH[k+1]+gH[k+WH]+gH[k+WH+1])>>2}
+  const cand=ATAG.candidates(gL,W,H,40),dets=[];
+  for(const q of cand.quads){const raw=q.map(([x,y])=>[x*2,y*2]);const r=ATAG.refine(gH,WH,HH,raw)||raw;const d=ATAG.decode(gH,WH,HH,r);if(d)dets.push(d)}
+  updateTrackers(dets,t);
+  if(showThr){const im=tx.createImageData(W,H);for(let i=0;i<W*H;i++){const v=cand.bin[i]?0:255;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}tx.putImageData(im,0,0);vx.imageSmoothingEnabled=false;vx.drawImage(thr,0,0,WH,HH)}
+  else{vx.imageSmoothingEnabled=true;vx.drawImage(hi,0,0)}
+  // outlines: grey for candidates that are not tags, red for tags
+  vx.lineJoin='round';vx.lineWidth=1.5;vx.strokeStyle='rgba(205,205,205,.85)';
+  for(const q of cand.quads){vx.beginPath();q.forEach(([x,y],i)=>i?vx.lineTo(x*2,y*2):vx.moveTo(x*2,y*2));vx.closePath();vx.stroke()}
+  ux.clearRect(0,0,WH,HH);
+  const ar=document.body.classList.contains('ar'),cs=ar?Math.max(hud.clientWidth/WH,hud.clientHeight/HH):hud.clientWidth/WH,u=1/Math.max(.2,cs||1);
+  const live=trackers.filter(tr=>t-tr.lastHit<250&&tr.track);
+  for(const tr of live){
+    vx.strokeStyle='#e4302b';vx.lineWidth=2.5*u;vx.setLineDash(tr.unsure?[6*u,5*u]:[]);vx.beginPath();tr.track.forEach(([x,y],i)=>i?vx.lineTo(x,y):vx.moveTo(x,y));vx.closePath();vx.stroke();vx.setLineDash([]);
+    const txt=label(tr),fsz=Math.max(11,Math.min(16,tr.side/7/u))*u;ux.font=`700 ${fsz}px Archivo,sans-serif`;const tw=ux.measureText(txt).width;
+    const lx=Math.max(4,Math.min(WH-tw-16*u,center(tr.track)[0]-tw/2)),ly=Math.min(HH-8*u,Math.max(...tr.track.map(p=>p[1]))+fsz*2);
+    if(tr.unsure){ux.fillStyle='rgba(255,255,255,.92)';ux.fillRect(lx-6*u,ly-fsz*1.35,tw+12*u,fsz*1.75);ux.strokeStyle='#e4302b';ux.lineWidth=1.5*u;ux.setLineDash([4*u,3*u]);ux.strokeRect(lx-6*u,ly-fsz*1.35,tw+12*u,fsz*1.75);ux.setLineDash([]);ux.fillStyle='#e4302b'}
+    else{ux.fillStyle='#e4302b';ux.fillRect(lx-6*u,ly-fsz*1.35,tw+12*u,fsz*1.75);ux.fillStyle='#fff'}
+    ux.fillText(txt,lx,ly)}
+  render3D(WH,HH,t);
+  // panel: largest tag's reading
+  const big=live.slice().sort((a,b)=>b.side-a.side)[0];
+  if(big&&big.det){const v=big.det.v,cells=new Array(100).fill(0);for(let r=1;r<9;r++)for(let c=1;c<9;c++)cells[r*10+c]=v[(r-1)*8+(c-1)]*255;drawCells($('seen'),cells);
+    drawCells($('ref'),storedCells(big.shown));$('refCap').textContent=`Closest stored tag: #${pad(big.shown+1)} ${NAMES[big.shown]}${big.unsure&&big.alt>=0?` (or #${pad(big.alt+1)} ${NAMES[big.alt]})`:''}`}
+  const key=live.map(tr=>tr.shown+(tr.unsure?'?':'')).sort().join(',');
+  if(key!==listKey){listKey=key;const ul=$('list');ul.textContent='';
+    for(const tr of live.slice().sort((a,b)=>a.shown-b.shown)){const li=document.createElement('li');li.textContent=tr.unsure&&tr.alt>=0?`${pad(tr.shown+1)} or ${pad(tr.alt+1)}?`:`${pad(tr.shown+1)} ${NAMES[tr.shown]}`;if(tr.unsure)li.className='unsure';ul.appendChild(li)}}
+  procMs=procMs*.9+(performance.now()-t0)*.1;
+  const st=$('status'),n=live.length;st.textContent=n?`${n} ${n===1?'folly':'follies'} growing`:'Searching…';st.classList.toggle('on',n>0);
+  const as=$('arStatus');as.textContent=n?`${n} ${n===1?'folly':'follies'}`:'Point at a tag';as.classList.toggle('on',n>0);
+  frames++;if(t-lastT>500){fps=Math.round(frames*1000/(t-lastT));frames=0;lastT=t}
+  $('meta').textContent=`${cand.quads.length} candidate square${cand.quads.length===1?'':'s'} · ${mode==='cam'?'camera':'simulated'} ${fps} fps · ${procMs.toFixed(1)} ms per frame`}
+
+// ---------- controls ----------
+function setMode(m){mode=m;$('bCam').setAttribute('aria-pressed',m==='cam');$('bSim').setAttribute('aria-pressed',m==='sim')}
+function setSize(m){sizeMode=m;$('bSame').setAttribute('aria-pressed',m==='same');$('bReal').setAttribute('aria-pressed',m==='real');$('bSize2').textContent=m==='same'?'Same size':'To scale';for(const tr of trackers)tr.modelId=-1}
+const phone=matchMedia('(max-width: 820px), (pointer: coarse)').matches;let stream=null;
+$('bSim').addEventListener('click',()=>{setMode('sim');$('msg').textContent=''});
+$('bSame').addEventListener('click',()=>setSize('same'));$('bReal').addEventListener('click',()=>setSize('real'));
+$('bSize2').addEventListener('click',()=>setSize(sizeMode==='same'?'real':'same'));
+$('bThr').addEventListener('click',()=>{showThr=!showThr;$('bThr').setAttribute('aria-pressed',showThr)});
+$('bCam').addEventListener('click',async()=>{
+  $('msg').textContent='Asking for camera access…';
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    video.srcObject=stream;await video.play();setMode('cam');if(phone)document.body.classList.add('ar');
+    $('msg').textContent='Camera on. Lay the tags flat, with white paper around each black square.'}
+  catch(e){setMode('sim');$('msg').textContent=location.protocol==='https:'?'Camera access was refused. Allow it in the browser settings and try again.':'The camera only works when this page is opened from an https address. The simulated camera is running instead.'}});
+$('bDone').addEventListener('click',()=>{document.body.classList.remove('ar');if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;setMode('sim');$('msg').textContent=''});
+$('bShot').addEventListener('click',async()=>{
+  const c=document.createElement('canvas');c.width=view.width;c.height=view.height;const cx=c.getContext('2d');
+  cx.drawImage(view,0,0);R.render(scene,cam3);cx.drawImage(glc,0,0,c.width,c.height);cx.drawImage(hud,0,0);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.92));const file=new File([blob],'a-tags_follies.jpg',{type:'image/jpeg'});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'A-Tags follies'});return}}catch(e){if(e.name==='AbortError')return}
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='a-tags_follies.jpg';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)});
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
